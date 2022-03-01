@@ -1,0 +1,57 @@
+#include <stdio.h>
+#include "test.h"
+
+EXEC SQL BEGIN DECLARE SECTION;
+    char db[15];
+    char usr[15];
+    char pas[15];
+    char dbname[1024];
+    char nazwisko[30];
+    char imie[30];
+    int id_wykladowca;
+EXEC SQL END DECLARE SECTION;
+
+
+//Source: https://stackoverflow.com/questions/1623111/programmatic-way-to-get-variable-name-in-c
+#define val_name(v)#v
+//
+
+void fun();
+
+int main()
+{
+	fun();
+    return 0;
+}
+
+void fun()
+{
+    FILE *file = fopen("wykladowcy.json", "w");
+    fprintf(file, "[");
+    strncpy(db,dbase,15);
+    strncpy(usr,user,15);
+    strncpy(pas,pass,15);
+    EXEC SQL CONNECT TO :db AS con1  USER :usr USING :pas;
+    EXEC SQL DECLARE kursor CURSOR FOR SELECT id_wykladowca, nazwisko , imie FROM kurs.wykladowca;
+    EXEC SQL OPEN kursor;
+    EXEC SQL FETCH kursor INTO :id_wykladowca, :nazwisko, :imie;
+    while(!sqlca.sqlcode != 0)
+    {
+        fprintf(file, "{ \"%s\":\"%d\",", val_name(id_wykladowca), id_wykladowca);
+        fprintf(file, " \"%s\":\"%s\",", val_name(nazwisko), nazwisko);
+        fprintf(file, " \"%s\":\"%s\"}", val_name(imie), imie);
+        EXEC SQL FETCH kursor INTO :id_wykladowca , :nazwisko, :imie;
+        if(!sqlca.sqlcode != 0)
+        {
+            fprintf(file, ",\n");
+        } 
+        else 
+        {
+            break;    
+        }
+    }
+    fprintf(file, "]");
+    EXEC SQL CLOSE kursor;
+    EXEC SQL DISCONNECT ALL;
+    fclose(file);
+}
